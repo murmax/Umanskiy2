@@ -2,17 +2,17 @@
 
 #include "restconnector.h"
 
-const QString restConnector::httpTemplate = "http://%1:%2/api/%3";
-const QString restConnector::httpsTemplate = "https://%1:%2/api/%3";
-const QString restConnector::KEY_QNETWORK_REPLY_ERROR = "QNetworkReplyError";
-const QString restConnector::KEY_CONTENT_NOT_FOUND = "ContentNotFoundError";
+const QString RestConnector::httpTemplate = "http://%1:%2/api/%3";
+const QString RestConnector::httpsTemplate = "https://%1:%2/api/%3";
+const QString RestConnector::KEY_QNETWORK_REPLY_ERROR = "QNetworkReplyError";
+const QString RestConnector::KEY_CONTENT_NOT_FOUND = "ContentNotFoundError";
 
-restConnector::restConnector(QObject *parent) : QObject(parent)
+RestConnector::RestConnector(QObject *parent) : QObject(parent)
 {
     manager = new QNetworkAccessManager(this);
 }
 
-void restConnector::initRequester(const QString &host, int port, QSslConfiguration *value)
+void RestConnector::initRequester(const QString &host, int port, QSslConfiguration *value)
 {
     this->host = host;
     this->port = port;
@@ -23,10 +23,10 @@ void restConnector::initRequester(const QString &host, int port, QSslConfigurati
         pathTemplate = httpTemplate;
 }
 
-void restConnector::sendRequest(const QString &apiStr,
+void RestConnector::sendRequest(const QString &apiStr,
                             const handleFunc &funcSuccess,
                             const handleFunc &funcError,
-                            restConnector::Type type,
+                            RestConnector::Type type,
                             const QVariantMap &data)
 {
     QNetworkRequest request = createRequest(apiStr);
@@ -73,7 +73,7 @@ void restConnector::sendRequest(const QString &apiStr,
 
 }
 
-void restConnector::sendMulishGetRequest(const QString &apiStr, //а ничего что здесь нигде не проверяется func != nullptr?
+void RestConnector::sendMulishGetRequest(const QString &apiStr, //а ничего что здесь нигде не проверяется func != nullptr?
                                      const handleFunc &funcSuccess,
                                      const handleFunc &funcError,
                                      const finishFunc &funcFinish)
@@ -112,17 +112,17 @@ void restConnector::sendMulishGetRequest(const QString &apiStr, //а ничег�
 }
 
 
-QString restConnector::getToken() const
+QString RestConnector::getToken() const
 {
     return token;
 }
 
-void restConnector::setToken(const QString &value)
+void RestConnector::setToken(const QString &value)
 {
     token = value;
 }
 
-QByteArray restConnector::variantMapToJson(QVariantMap data)
+QByteArray RestConnector::variantMapToJson(QVariantMap data)
 {
     QJsonDocument postDataDoc = QJsonDocument::fromVariant(data);
     QByteArray postDataByteArray = postDataDoc.toJson();
@@ -130,7 +130,7 @@ QByteArray restConnector::variantMapToJson(QVariantMap data)
     return postDataByteArray;
 }
 
-QNetworkRequest restConnector::createRequest(const QString &apiStr)
+QNetworkRequest RestConnector::createRequest(const QString &apiStr)
 {
     QNetworkRequest request;
     QString url = pathTemplate.arg(host).arg(port).arg(apiStr);
@@ -144,7 +144,7 @@ QNetworkRequest restConnector::createRequest(const QString &apiStr)
     return request;
 }
 
-QNetworkReply* restConnector::sendCustomRequest(QNetworkAccessManager* manager,
+QNetworkReply* RestConnector::sendCustomRequest(QNetworkAccessManager* manager,
                                             QNetworkRequest &request,
                                             const QString &type,
                                             const QVariantMap &data)
@@ -159,7 +159,7 @@ QNetworkReply* restConnector::sendCustomRequest(QNetworkAccessManager* manager,
     return reply;
 }
 
-QJsonObject restConnector::parseReply(QNetworkReply *reply)
+QJsonObject RestConnector::parseReply(QNetworkReply *reply)
 {
     QJsonObject jsonObj;
     QJsonDocument jsonDoc;
@@ -178,7 +178,7 @@ QJsonObject restConnector::parseReply(QNetworkReply *reply)
     return jsonObj;
 }
 
-bool restConnector::onFinishRequest(QNetworkReply *reply)
+bool RestConnector::onFinishRequest(QNetworkReply *reply)
 {
     auto replyError = reply->error();
     if (replyError == QNetworkReply::NoError ) {
@@ -190,7 +190,7 @@ bool restConnector::onFinishRequest(QNetworkReply *reply)
     return false;
 }
 
-void restConnector::handleQtNetworkErrors(QNetworkReply *reply, QJsonObject &obj)
+void RestConnector::handleQtNetworkErrors(QNetworkReply *reply, QJsonObject &obj)
 {
     auto replyError = reply->error();
     if (!(replyError == QNetworkReply::NoError ||

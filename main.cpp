@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
             break;
         }
     }
-    MainClass* mc = new MainClass(nullptr);
+    MainClass mc;
 
 
     return a.exec();
