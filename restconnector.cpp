@@ -2,20 +2,21 @@
 
 #include "restconnector.h"
 
-const QString RestConnector::httpTemplate = "http://%1:%2/api/%3";
-const QString RestConnector::httpsTemplate = "https://%1:%2/api/%3";
+const QString RestConnector::httpTemplate = "http://%1/%2";
+const QString RestConnector::httpsTemplate = "https://%1/%2";
 const QString RestConnector::KEY_QNETWORK_REPLY_ERROR = "QNetworkReplyError";
 const QString RestConnector::KEY_CONTENT_NOT_FOUND = "ContentNotFoundError";
+
+const QString yandexDiskAddr = "https://cloud-api.yandex.net/v1/disk";
 
 RestConnector::RestConnector(QObject *parent) : QObject(parent)
 {
     manager = new QNetworkAccessManager(this);
 }
 
-void RestConnector::initRequester(const QString &host, int port, QSslConfiguration *value)
+void RestConnector::initRequester(const QString &host,  QSslConfiguration *value)
 {
     this->host = host;
-    this->port = port;
     sslConfig = value;
     if (sslConfig != nullptr)
         pathTemplate = httpsTemplate;
@@ -30,6 +31,7 @@ void RestConnector::sendRequest(const QString &apiStr,
                             const QVariantMap &data)
 {
     QNetworkRequest request = createRequest(apiStr);
+    qDebug()<<"Request. URL:"<<request.url()<<"headers:"<<request.rawHeaderList();
 
     QNetworkReply *reply;
     switch (type) {
@@ -133,11 +135,11 @@ QByteArray RestConnector::variantMapToJson(QVariantMap data)
 QNetworkRequest RestConnector::createRequest(const QString &apiStr)
 {
     QNetworkRequest request;
-    QString url = pathTemplate.arg(host).arg(port).arg(apiStr);
+    QString url = pathTemplate.arg(host).arg(apiStr);
     request.setUrl(QUrl(url));
     request.setRawHeader("Content-Type","application/json");
     if(!token.isEmpty())
-        request.setRawHeader("Authorization",QString("token %1").arg(token).toUtf8());
+        request.setRawHeader("Authorization",QString("OAuth %1").arg(token).toUtf8());
     if (sslConfig != nullptr)
         request.setSslConfiguration(*sslConfig);
 

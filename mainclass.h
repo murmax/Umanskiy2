@@ -11,6 +11,9 @@ class MainClass : public QObject
     Q_OBJECT
 public:
     MainClass(QString addressYandex, QString APIKey, QObject* parent=nullptr);
+    static void onSuccess(const QJsonObject &obj);
+    static void onFail();
+
     void syncWithDB();
 
     void sendGetUser();

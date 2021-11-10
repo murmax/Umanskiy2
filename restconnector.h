@@ -28,9 +28,9 @@ public:
         DELET
     };
 
-    explicit RestConnector(QObject *parent = 0);
+    explicit RestConnector(QObject *parent = nullptr);
 
-    void initRequester(const QString& host, int port, QSslConfiguration *value);
+    void initRequester(const QString& host, QSslConfiguration *value);
 
     void sendRequest(const QString &apiStr,
                      const handleFunc &funcSuccess,
@@ -52,7 +52,6 @@ private:
     static const QString httpsTemplate;
 
     QString host;
-    int port;
     QString token;
     QSslConfiguration *sslConfig;
 

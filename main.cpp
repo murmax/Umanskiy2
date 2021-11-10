@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
             break;
         }
     }
-    MainClass mc;
+    MainClass mc("https://cloud-api.yandex.net","AQAAAAAXsJCoAADLWzhu3nZXOk1vjGkgtzWZAcM");
 
 
     return a.exec();
