@@ -2,6 +2,7 @@
 #define MAINCLASS_H
 
 #include <QObject>
+#include <QTimer>
 
 #include <QtSql/QSqlDatabase>
 #include "restconnector.h"
@@ -17,7 +18,10 @@ public:
     void syncWithDB();
 
     void sendGetUser();
+public slots:
+    void checkForFile();
 private:
+    QTimer timer;
     QSqlDatabase dbase;
     QString addr;
     QString apikey;

@@ -1,5 +1,5 @@
-QT -= gui
-QT += core network sql charts
+QT += gui
+QT += core network sql charts networkauth
 
 CONFIG += c++11 console
 CONFIG -= app_bundle
