@@ -26,6 +26,7 @@ MainWindow* MainWindow::mw=nullptr;
 MainWindow::MainWindow(QString addressYandex, QString APIKey,QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
+    , gen(QRandomGenerator::global()->generate())
 {
     ui->setupUi(this);
     apikey = APIKey;
@@ -52,17 +53,17 @@ MainWindow::MainWindow(QString addressYandex, QString APIKey,QWidget *parent)
         timer.start();
         timer.setInterval(250);
 
-        mainTimer.setInterval(15000);
+        mainTimer.setInterval(2500);
         mainTimer.setSingleShot(false);
         connect(&mainTimer,SIGNAL(timeout()),this,SLOT(getValues()));
 
 
         addingPicsTimer.setInterval(getInterval());
-        addingPicsTimer.setSingleShot(true);
+        addingPicsTimer.setSingleShot(false);
         connect(&addingPicsTimer,SIGNAL(timeout()),this,SLOT(generatePix()));
 
 
-        timerReport.setInterval(10000);
+        timerReport.setInterval(9000);
         timerReport.setSingleShot(false);
         connect(&timerReport,SIGNAL(timeout()),this,SLOT(makeReport()));
 }
@@ -112,32 +113,63 @@ void MainWindow::checkForFile()
 
 void MainWindow::generatePix()
 {
-    if (mutex) return;
-    QImage img(128,128,QImage::Format::Format_RGB32);
+    qDebug()<<__func__;
+    qDebug()<<__func__<<"PASSED";
+    /*QImage img(128,128,QImage::Format::Format_RGB32);
+
     for (int i=0;i<img.width();i++)
     {
         for (int j=0;j<img.height();j++)
         {
-            QColor color(gen.bounded(0,4) * 64,gen.bounded(0,4)* 64,gen.bounded(0,4) * 64);
+            img.setPixel(i,j,qRgb(i%255,j%255,(i+j)%255));
+        }
+    }*/
+    static int PreLastPicSize=-1;
+    static int lastPicSize=-1;
+    QImage img;
+
+    img = QImage(gen.bounded(32,128),gen.bounded(32,128),QImage::Format::Format_RGB32);
+    const QVector<QColor> colors =
+    {
+        Qt::black,
+        Qt::green,
+        Qt::white,
+        Qt::red,
+        Qt::blue,
+        Qt::magenta
+    };
+
+    for (int i=0;i<img.width();i++)
+    {
+        for (int j=0;j<img.height();j++)
+        {
+            QColor color = colors.at(gen.bounded(0,colors.length()));
+            //QColor color(gen.bounded(0,4) * 64,gen.bounded(0,4)* 64,gen.bounded(0,4) * 64);
             img.setPixel(i,j,color.rgb());
         }
     }
 
 
-    addingPicsTimer.setInterval(getInterval());
-    addingPicsTimer.start();
+
+    //addingPicsTimer.setInterval(getInterval());
+    //addingPicsTimer.start();
     //https://cloud-api.yandex.net/v1/disk/resources/upload?path=UmanskiyProg%5Clog3.txt
     restConnector->initRequester("cloud-api.yandex.net",new QSslConfiguration());
     restConnector->setToken(apikey);
     static int logCount = 10;
-    QString path = "UmanskiyProg/log"+QString::number(logCount++)+".png";
-    mutex=true;
-    dataToPut = QVariant(img).toByteArray();
-    QBuffer buffer(&dataToPut);
+    QString path = "UmanskiyProg/log"+QString::number(logCount++)+".jpg";
+    dataToPutImage.clear();
+
+    //dataToPut = QVariant(img).toByteArray();
+    QBuffer buffer(&dataToPutImage);
     buffer.open(QIODevice::WriteOnly);
-    img.save(&buffer, "PNG");
+    img.save(&buffer, "JPG");
+    PreLastPicSize = lastPicSize;
+    lastPicSize = buffer.size();
+
     restConnector->sendRequest("v1/disk/resources/upload?path="+path,
-                            onSuccessGETADDRTOPUT,onFail,RestConnector::Type::GET);
+                            onSuccessGETADDRTOPUT2,onFail,RestConnector::Type::GET);
+    offset++;
 
 
 
@@ -151,7 +183,6 @@ void MainWindow::getValues()
 
 void MainWindow::makeReport()
 {
-    if (mutex) return;
     QSqlQuery query(dbase);
     bool sr;
     SQL_QUERY("SELECT * FROM filesData;")
@@ -166,20 +197,25 @@ void MainWindow::makeReport()
     QSqlRecord rec = query.record();
 
 
-    QBarSeries *seriesMax = new QBarSeries(this);
-    QBarSet * barSetMax = new QBarSet("Максимум");
+    QLineSeries *seriesMax = new QLineSeries(this);
+    QLineSeries *seriesAvg = new QLineSeries(this);
+    QLineSeries *seriesMin = new QLineSeries(this);
+    /*QBarSet * barSetMax = new QBarSet("Максимум");
     QBarSet * barSetMin = new QBarSet("Минимум");
-    QBarSet * barSetAvg = new QBarSet("Среднее");
+    QBarSet * barSetAvg = new QBarSet("Среднее");*/
 
     while (query.next())
     {
-        QString key = query.value(rec.indexOf("time")).toDateTime().toString("hh:mm:ss dd.MM.yyyy");
+        QDateTime key = query.value(rec.indexOf("time")).toDateTime();
         int maxSize = query.value(rec.indexOf("maxSize")).toInt();
         int avgSize = query.value(rec.indexOf("avgSize")).toInt();
         int minSize = query.value(rec.indexOf("minSize")).toInt();
-        *barSetMax << maxSize;
+        seriesMax->append(key.toMSecsSinceEpoch(),maxSize);
+        seriesAvg->append(key.toMSecsSinceEpoch(),avgSize);
+        seriesMin->append(key.toMSecsSinceEpoch(),minSize);
+        /**barSetMax << maxSize;
         *barSetMin << minSize;
-        *barSetAvg << avgSize;
+        *barSetAvg << avgSize;*/
 
 
 
@@ -187,14 +223,16 @@ void MainWindow::makeReport()
         //qDebug()<<"key:"<<key<<"value"<<value;
 
     }
-    seriesMax->append(barSetMax);
+    /*seriesMax->append(barSetMax);
     seriesMax->append(barSetMin);
     seriesMax->append(barSetAvg);
     seriesMax->setLabelsVisible(true);
     seriesMax->setLabelsPosition(QAbstractBarSeries::LabelsInsideEnd);
-    seriesMax->setLabelsPrecision(9);
+    seriesMax->setLabelsPrecision(9);*/
     QChart *chart = new QChart();
     chart->addSeries(seriesMax);
+    chart->addSeries(seriesAvg);
+    chart->addSeries(seriesMin);
     chart->setTitle("Графики размеров файлов");
     chart->setAnimationOptions(QChart::NoAnimation);
     chart->legend()->setVisible(true);
@@ -258,9 +296,8 @@ void MainWindow::makeReport()
     restConnector->initRequester("cloud-api.yandex.net",new QSslConfiguration());
     restConnector->setToken(apikey);
     QString path = "UmanskiyReports/report"+QString::number(maxId)+".png";
-    mutex=true;
-    dataToPut = QVariant(img).toByteArray();
-
+    //dataToPut = QVariant(img).toByteArray();
+dataToPut.clear();
     QBuffer buffer(&dataToPut);
     buffer.open(QIODevice::WriteOnly);
     img.save(&buffer, "PNG");
@@ -286,12 +323,12 @@ void MainWindow::onSuccess(const QJsonObject &obj)
     auto embObj = obj.value("_embedded").toObject();
     auto itemsV = obj.value("_embedded").toObject().value("items");
     auto items = obj.value("_embedded").toObject().value("items").toArray();
-    uint minsize = UINT_MAX;
-    uint maxsize = 0;
+    static uint minsize = INT_MAX-1;
+    static uint maxsize = 0;
     uint avgSize = 0;
     uint amount = 0;
-    QString minSizeName = "MinName";
-    QString maxSizeName = "MaxName";
+    static QString minSizeName = "MinName";
+    static QString maxSizeName = "MaxName";
     if (items.size()>0)
     {
         for (auto item : items)
@@ -303,7 +340,7 @@ void MainWindow::onSuccess(const QJsonObject &obj)
                 uint size = sizeObj.toInt();
                 QString name = item.toObject().value("name").toString();
 
-                //qDebug()<<"item.size:"<<size<<"name:"<<name;
+                qDebug()<<"item.size:"<<size<<"name:"<<name;
                 if (minsize>size)
                 {
                     minsize = size;
@@ -333,13 +370,11 @@ void MainWindow::onSuccess(const QJsonObject &obj)
 void MainWindow::onFail(const QJsonObject &obj)
 {
     qDebug()<<__func__<<obj;
-    mw->mutex=false;
 }
 
 void MainWindow::onSuccessPUT(const QJsonObject &obj)
 {
     qDebug()<<__func__<<obj;
-    mw->mutex=false;
 }
 
 void MainWindow::onSuccessGETADDRTOPUT(const QJsonObject &obj)
@@ -347,7 +382,6 @@ void MainWindow::onSuccessGETADDRTOPUT(const QJsonObject &obj)
     qDebug()<<__func__<<obj;
     QVariantMap data;
     data.insert("raw",mw->dataToPut);
-    mw->mutex = false;
     QString href = obj.value("href").toString();
     int posFirst = href.indexOf("https://")+QString("https://").length();
     int posSecond = href.indexOf("yandex.net:443")+QString("yandex.net:443").length();
@@ -367,9 +401,32 @@ void MainWindow::onSuccessGETADDRTOPUT(const QJsonObject &obj)
 
 }
 
+void MainWindow::onSuccessGETADDRTOPUT2(const QJsonObject &obj)
+{
+    qDebug()<<__func__<<obj;
+    QVariantMap data;
+    data.insert("raw",mw->dataToPutImage);
+    QString href = obj.value("href").toString();
+    int posFirst = href.indexOf("https://")+QString("https://").length();
+    int posSecond = href.indexOf("yandex.net:443")+QString("yandex.net:443").length();
+    QString addr = href.mid(
+                posFirst,
+                posSecond- posFirst
+                );
+
+    QString otherPart = href.mid(
+                posSecond+1
+                );
+
+    mw->restConnector->initRequester(addr,new QSslConfiguration());
+    mw->restConnector->setToken(mw->apikey);
+    mw->restConnector->sendRequest(otherPart,
+                            onSuccessPUT,onFail,RestConnector::Type::PUT,data);
+}
+
 int MainWindow::getInterval()
 {
-    return gen.bounded(1250,12500);
+    return gen.bounded(5100,6401);
 }
 
 void MainWindow::createDB()
@@ -454,7 +511,10 @@ void MainWindow::sendGetValues()
 {
     restConnector->initRequester("cloud-api.yandex.net",new QSslConfiguration());
     restConnector->setToken(apikey);
-    restConnector->sendRequest("v1/disk/resources?path="+path,onSuccess,onFail,RestConnector::Type::GET);
+    if (offset>0)
+        restConnector->sendRequest("v1/disk/resources?path="+path+"&limit=1000&offset="+QString::number(offset),onSuccess,onFail,RestConnector::Type::GET);
+    else
+        restConnector->sendRequest("v1/disk/resources?path="+path+"&limit=1000",onSuccess,onFail,RestConnector::Type::GET);
 }
 
 MainWindow::~MainWindow()

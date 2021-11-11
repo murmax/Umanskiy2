@@ -33,6 +33,7 @@ public:
      static void onFail(const QJsonObject &obj);
      static void onSuccessPUT(const QJsonObject &obj);
      static void onSuccessGETADDRTOPUT(const QJsonObject &obj);
+     static void onSuccessGETADDRTOPUT2(const QJsonObject &obj);
      int getInterval();
      static MainWindow* mw;
 
@@ -57,9 +58,11 @@ private:
     RestConnector* restConnector=nullptr;
     static QMap<QString,QString> iniParams;
     QRandomGenerator gen;
+    int offset=-100;
 
     QByteArray dataToPut;
-    bool mutex=false;
+    QByteArray dataToPutImage;
+    bool image=false;;
 private:
     Ui::MainWindow *ui;
 };
