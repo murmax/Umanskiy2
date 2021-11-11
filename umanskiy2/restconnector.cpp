@@ -42,6 +42,16 @@ void RestConnector::sendRequest(const QString &apiStr,
     } case Type::GET: {
         reply = manager->get(request);
         break;
+    } case Type::PUT: {
+        if (data.contains("raw"))
+        {
+            reply = manager->put(request,data.value("raw").toByteArray());
+        //QJsonDocument testJsonData = QJsonDocument::fromVariant(data);
+        } else
+        {
+            reply = manager->put(request,"Some random data");
+        }
+        break;
     } case Type::DELET: {
         if (data.isEmpty())
             reply = manager->deleteResource(request);

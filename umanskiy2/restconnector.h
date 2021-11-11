@@ -25,7 +25,8 @@ public:
         POST,
         GET,
         PATCH,
-        DELET
+        DELET,
+        PUT
     };
 
     explicit RestConnector(QObject *parent = nullptr);
